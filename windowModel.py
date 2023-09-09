@@ -221,6 +221,9 @@ class WindowModel(pyglet.window.Window):
     def load_pos_orient(self):
         self.player.pos,self.player.rot = copy.deepcopy(self.saved_position)
 
+    def export_current_view(self):
+        self.model.draw(save=1)
+
     # On draw, will clear scene and then rotate/translate the world, redraw scene
     def on_draw(self):
         self.clear()

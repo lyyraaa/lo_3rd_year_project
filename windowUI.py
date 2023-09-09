@@ -118,6 +118,7 @@ class WindowUI(pyglet.window.Window):
 
         self.save_pos_orient_button = OneTimeButton("Save position",on_release=self.save_pos_orient)
         self.load_pos_orient_button = OneTimeButton("Load position",on_release=self.load_pos_orient)
+        self.export_button = OneTimeButton("Export",on_release=self.export_current_view)
         # The lenses correspond to buttons with sets of mutual exclusivity
         # Lenses with the same group ID cannot be set at the same time
         # Default is pushed by default
@@ -181,7 +182,10 @@ class WindowUI(pyglet.window.Window):
             self.mouseconnect_button,
             Spacer(5),
             self.save_pos_orient_button,
-            self.load_pos_orient_button])
+            self.load_pos_orient_button,
+            Spacer(5),
+            Label("Export current view to .obj"),
+            self.export_button])
 
 
         container_causal_boxes = Scrollable(height=300, width=200, content=VerticalContainer(content=self.causal_checkbox_arr,align=HALIGN_CENTER))
@@ -356,6 +360,9 @@ class WindowUI(pyglet.window.Window):
 
     def load_pos_orient(self,_):
         self.window3D.load_pos_orient()
+
+    def export_current_view(self,_):
+        self.window3D.export_current_view()
 
     # Opens a dialog window to allow user to load a pattern from a file
     def add_pattern_from_file(self,_):

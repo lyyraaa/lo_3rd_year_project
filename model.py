@@ -719,59 +719,104 @@ class Model:
 
     # Drawing the model equates to drawing every colour batch that isnt unchecked
     # This also depends on the lens being used, to draw other batches and change bg colour
-    def draw(self):
+    def draw(self,save=0):
 
         # Light position of the central light must be re-defined every time the scene is drawn
         glLightfv(GL_LIGHT0, GL_POSITION, (GLfloat*4)(0,15,0,1))
 
+        to_draw = []
 
         # Draws the crosshair no matter what
         if self.lens[0]:
-            self.batch_crosshair.draw()
+            to_draw.append(self.batch_crosshair)
         if self.lens[8]:
-            self.batch_neighborhoods.draw()
+            to_draw.append(self.batch_neighborhoods)
         if self.lens[5]:
-            self.batch_cs_ca.draw()
+            to_draw.append(self.batch_cs_ca)
         if self.lens[4]:
             glLineWidth(self.linewidth)
             for ind,pattern in enumerate(self.causaldraw_list):
                 if pattern:
-                    self.batchlist_causal_lines[ind].draw()
+                    to_draw.append(self.batchlist_causal_lines[ind])
             glLineWidth(1)
         if self.lens[7]:
             for ind,pattern in enumerate(self.matchdraw_list):
                 if pattern:
-                    self.batchlist_highlights[ind].draw()
+                    to_draw.append(self.batchlist_highlights[ind])
         if self.lens[9]:
             glLineWidth(self.linewidth*2)
-            self.batch_lightcone_causal.draw()
+            to_draw.append(self.batch_lightcone_causal)
             glLineWidth(1)
         if self.lens[10]:
-            self.batch_lightcone_causal_cubes.draw()
+            to_draw.append(self.batch_lightcone_causal_cubes)
         if self.lens[3]:
-            self.batch_activelens.draw()
+            to_draw.append(self.batch_activelens)
         if self.lens[1]:
             for ind,colour in enumerate(self.colourdraw_list):
                 if colour:
-                    self.batchlist[ind].draw()
+                    to_draw.append(self.batchlist[ind])
         if self.lens[6]:
-            self.batch_lightcone.draw()
+            to_draw.append(self.batch_lightcone)
         if self.lens[2]:
-            self.batch_ghosts.draw()
+            to_draw.append(self.batch_ghosts)
+
+        if save:
+            self.export()
+
+
+        else:
+            for object in to_draw:
+                object.draw()
 
 
 
-        # Checks whether a background colour update is needed
-        # This flag prevents the background colour needing to be set every frame
-        #if self.bg_change:
-        #
-        #    if self.lens[5]:
-        #        glClearColor(0.605,0.72,0.75,1)
-        #    elif any(self.lens[2:5]):
-        #        glClearColor(0.85,0.85,0.85,1)
-        #    else:
-        #        glClearColor(0.2,0.25,0.5,1)
-        #    self.bg_change = False
+        to_draw = []
+
+
+    def export(self):
+        name = "demo"
+
+        color_list = list(map(lambda x: x/255,self.ghost_objects.colors.array[:]))
+
+        color_list = [f"{color_list[x]} {color_list[x+1]} {color_list[x+2]}" for x in range(0,len(color_list),4)]
+        colset = list(dict.fromkeys(color_list))
+        mtl_dict = dict()
+        mtlstring = ""
+        for x,col in enumerate(colset):
+            mtl_dict[col] = f"\nusemtl material_{x}\n"
+            mtlstring += f"\nnewmtl material_{x}\nKa 0.0 0.0 0.0\nKd {col}\nKs 0.0 0.0 0.0\nillum 2\nNs 60.0\n\n"
+
+        vertex_list = self.ghost_objects.vertices.array[:]
+        norm_list = self.ghost_objects.normals.array[:]
+
+
+        objstring = f"#{name}.obj\n\nmtllib ./{name}.mtl\n\ng {name}\n\n"
+        objstring += "\n".join(
+            [f"v {vertex_list[x]} {vertex_list[x+1]} {vertex_list[x+2]}" for x in range(0,len(vertex_list),3)])
+        objstring += "\n\n"
+
+        objstring += "\n\n"
+        objstring += "vt 0 0 0" # Try removing this
+        objstring += "\n\n"
+
+        objstring += "\n".join(
+            [f"vn {norm_list[x]} {norm_list[x+1]} {norm_list[x+2]}" for x in range(0,len(norm_list),3)])
+        objstring += "\n\n"
+
+        color_list[len(color_list):len(color_list)+8] = color_list[len(color_list)-8:len(color_list)]
+        objstring += mtl_dict[color_list[0]]
+        for x in range(0,len(vertex_list)//3,4):
+            objstring += f"f {x+1}/1/{x+1} {x+2}/1/{x+2} {x+3}/1/{x+3} {x+4}/1/{x+4}\n"
+            if color_list[x] != color_list[4+x]:
+                objstring += mtl_dict[color_list[4 + x]]
+
+        f = open(f"{name}.obj", "w")
+        f.write(objstring)
+        f.close()
+
+        f = open(f"{name}.mtl", "w")
+        f.write(mtlstring)
+        f.close()
 
     def change_background(self,options):
         bg_colours = [
